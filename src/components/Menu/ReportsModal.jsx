@@ -1,8 +1,10 @@
 import React, { useState, forwardRef } from 'react';
 import { useSales } from '../../context/SalesContext';
-import { BarChart3, TrendingUp, Package, IndianRupee, Printer, Calendar, X } from 'lucide-react';
+import { BarChart3, TrendingUp, Package, IndianRupee, Printer, Calendar, X, FileSpreadsheet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReactToPrint } from 'react-to-print';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 const ReportPrint = forwardRef(({ summary }, ref) => (
     <div ref={ref} style={{
@@ -74,6 +76,89 @@ const ReportsModal = ({ isOpen, onClose }) => {
         contentRef: printRef,
         documentTitle: `Ahmeds_Center_Report_${period}_${new Date().toISOString().split('T')[0]}`
     });
+
+    const handleExportToExcel = async () => {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Sales Details');
+
+        // Restore default views
+        worksheet.views = [{ showGridLines: true }];
+
+        // Define Columns 
+        worksheet.columns = [
+            { key: 'date', width: 18 },
+            { key: 'customer', width: 25 },
+            { key: 'phone', width: 18 },
+            { key: 'orderNo', width: 12 },
+            { key: 'amount', width: 15 },
+            { key: 'payment', width: 18 },
+            { key: 'service', width: 20 }
+        ];
+
+        // Format Header Text: Ahmed's Center Sales Report Generated on [Date] at [Time]
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const titleText = `Ahmed's Center Sales Report Generated on ${dateStr} at ${timeStr}`;
+
+        // Define border styles
+        const thinBorder = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+        };
+
+        // Add the styled top title row
+        worksheet.mergeCells('A1:G1');
+        const titleCell = worksheet.getCell('A1');
+        titleCell.value = titleText;
+        titleCell.font = { bold: true, size: 14, color: { argb: '000000' } };
+        titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        titleCell.border = thinBorder;
+        worksheet.getRow(1).height = 30;
+
+        // Add an empty row for spacing
+        worksheet.addRow([]);
+
+        // Add the table header row
+        const tableHeaders = ['Date', 'Customer Name', 'Phone No.', 'Order No.', 'Total Amount', 'Payment Type', 'Service Charge'];
+        const headerRow = worksheet.addRow(tableHeaders);
+        headerRow.font = { bold: true };
+        headerRow.height = 20;
+
+        // Apply borders (keep defaults for alignment)
+        headerRow.eachCell((cell) => {
+            cell.border = thinBorder;
+        });
+
+        // Add Data Rows from filtered sales
+        summary.filteredSales.forEach((sale, index) => {
+            const saleDate = new Date(sale.timestamp);
+            const dataRow = worksheet.addRow({
+                date: saleDate.toLocaleDateString('en-GB'),
+                customer: 'Cash Sale',
+                phone: '',
+                orderNo: index + 1,
+                amount: Number(sale.total),
+                payment: sale.payment_method || 'Cash',
+                service: '0.00 (0.0%)'
+            });
+
+            // Set number format for amount
+            dataRow.getCell('amount').numFmt = '#,##0.00';
+
+            // Apply borders (keep defaults for alignment)
+            dataRow.eachCell((cell) => {
+                cell.border = thinBorder;
+            });
+        });
+
+        // Generate and save file
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, `Ahmeds_Center_Sales_Report_${period}_${now.toISOString().split('T')[0]}.xlsx`);
+    };
 
     return (
         <AnimatePresence>
@@ -191,13 +276,22 @@ const ReportsModal = ({ isOpen, onClose }) => {
                             </table>
                         </div>
 
-                        <button
-                            onClick={handlePrint}
-                            className="btn btn-primary"
-                            style={{ width: '100%', justifyContent: 'center', marginTop: '2rem', padding: '1rem' }}
-                        >
-                            <Printer size={20} /> Print {period === 'custom' ? 'Custom' : ''} report
-                        </button>
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                            <button
+                                onClick={handlePrint}
+                                className="btn btn-secondary"
+                                style={{ flex: 1, justifyContent: 'center', padding: '1rem' }}
+                            >
+                                <Printer size={20} /> Print Report
+                            </button>
+                            <button
+                                onClick={handleExportToExcel}
+                                className="btn btn-primary"
+                                style={{ flex: 1, justifyContent: 'center', padding: '1rem' }}
+                            >
+                                <FileSpreadsheet size={20} /> Export Excel
+                            </button>
+                        </div>
 
                         <div style={{ display: 'none' }}>
                             <ReportPrint ref={printRef} summary={summary} />

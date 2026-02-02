@@ -29,7 +29,7 @@ export const SalesProvider = ({ children }) => {
         fetchSales();
     }, []);
 
-    const recordSale = async (items, total) => {
+    const recordSale = async (items, total, paymentMethod = 'Cash') => {
         const saleItems = items.map(item => ({
             id: item.id,
             name: item.name,
@@ -40,7 +40,8 @@ export const SalesProvider = ({ children }) => {
         const newSale = {
             timestamp: new Date().toISOString(),
             items: saleItems,
-            total
+            total,
+            payment_method: paymentMethod
         };
 
         try {
@@ -104,7 +105,8 @@ export const SalesProvider = ({ children }) => {
             saleCount: filteredSales.length,
             period,
             startDate,
-            endDate: period === 'custom' ? endDate : now
+            endDate: period === 'custom' ? endDate : now,
+            filteredSales // Include raw sales list for export
         };
     };
 

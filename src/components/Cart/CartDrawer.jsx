@@ -18,7 +18,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
         contentRef: componentRef,
         documentTitle: "Ahmed's Center",
         onAfterPrint: () => {
-            recordSale(cart, totalPrice);
+            recordSale(cart, totalPrice, paymentMethod);
             clearCart();
             onClose();
         }

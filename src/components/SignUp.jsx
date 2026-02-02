@@ -16,7 +16,7 @@ const Auth = () => {
         role: ROLES.BILLER
     });
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setSuccess('');
@@ -28,9 +28,9 @@ const Auth = () => {
 
         try {
             if (isLogin) {
-                login(formData.name, formData.password);
+                await login(formData.name, formData.password);
             } else {
-                signup(formData);
+                await signup(formData);
                 setSuccess('User created Successfully');
                 setFormData({ name: '', password: '', role: ROLES.BILLER });
                 setTimeout(() => {

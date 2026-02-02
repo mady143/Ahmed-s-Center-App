@@ -24,6 +24,7 @@ Ahmed's Center App is a premium snack ordering and management system designed fo
 ### 📄 Professional Printing
 - **Receipts**: Automated thermal receipt printing with "Ahmed's Center" branding and subtle security watermarks.
 - **Sales Reports**: Detailed sales summaries for Admins (Daily, Weekly, Monthly, or Custom ranges) with professional print layouts.
+- **Excel Export**: High-quality `.xlsx` export featuring a detailed transaction list with borders, centered headers, and currency formatting.
 
 ### 🎨 Premium UI/UX
 - **Dark Theme**: Eye-catching dark interface optimized for OLED screens.
@@ -40,6 +41,7 @@ Ahmed's Center App is a premium snack ordering and management system designed fo
 - **Styling**: Vanilla CSS (Custom Variable System)
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Excel Reports**: [ExcelJS](https://github.com/exceljs/exceljs) + [FileSaver.js](https://github.com/eligrey/FileSaver.js/)
 - **Printing**: [React-to-Print](https://github.com/gregnb/react-to-print)
 
 ## 🚦 Getting Started

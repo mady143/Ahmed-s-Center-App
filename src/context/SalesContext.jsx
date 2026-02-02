@@ -1,35 +1,61 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 const SalesContext = createContext();
 
 export const SalesProvider = ({ children }) => {
-    const [sales, setSales] = useState(() => {
+    const [sales, setSales] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchSales = async () => {
         try {
-            const saved = localStorage.getItem('ahmed_sales');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            console.error('Failed to parse sales from localStorage', e);
-            return [];
+            // Fetch sales from the last 30 days by default or something manageable
+            // For now, let's just fetch all since it's a new system
+            const { data, error } = await supabase
+                .from('sales')
+                .select('*')
+                .order('timestamp', { ascending: false });
+
+            if (error) throw error;
+            setSales(data || []);
+        } catch (error) {
+            console.error('Error fetching sales:', error);
+        } finally {
+            setLoading(false);
         }
-    });
+    };
 
     useEffect(() => {
-        localStorage.setItem('ahmed_sales', JSON.stringify(sales));
-    }, [sales]);
+        fetchSales();
+    }, []);
 
-    const recordSale = (items, total) => {
+    const recordSale = async (items, total) => {
+        const saleItems = items.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity
+        }));
+
         const newSale = {
-            id: Date.now(),
             timestamp: new Date().toISOString(),
-            items: items.map(item => ({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity
-            })),
+            items: saleItems,
             total
         };
-        setSales(prev => [...prev, newSale]);
+
+        try {
+            const { data, error } = await supabase
+                .from('sales')
+                .insert([newSale])
+                .select()
+                .single();
+
+            if (error) throw error;
+            setSales(prev => [data, ...prev]);
+        } catch (error) {
+            console.error('Error recording sale:', error);
+            alert('Failed to record sale');
+        }
     };
 
     const getSalesSummary = (period, customRange = null) => {
@@ -56,8 +82,13 @@ export const SalesProvider = ({ children }) => {
         });
 
         const summary = filteredSales.reduce((acc, sale) => {
-            acc.totalRevenue += sale.total;
-            sale.items.forEach(item => {
+            // Ensure sale.total is a number
+            acc.totalRevenue += Number(sale.total);
+
+            // Handle items stored as JSONB
+            const items = typeof sale.items === 'string' ? JSON.parse(sale.items) : sale.items;
+
+            items.forEach(item => {
                 if (!acc.items[item.name]) {
                     acc.items[item.name] = { quantity: 0, revenue: 0, price: item.price };
                 }
@@ -78,7 +109,7 @@ export const SalesProvider = ({ children }) => {
     };
 
     return (
-        <SalesContext.Provider value={{ sales, recordSale, getSalesSummary }}>
+        <SalesContext.Provider value={{ sales, loading, recordSale, getSalesSummary }}>
             {children}
         </SalesContext.Provider>
     );

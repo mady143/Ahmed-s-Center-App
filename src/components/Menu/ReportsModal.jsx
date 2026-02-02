@@ -5,43 +5,57 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useReactToPrint } from 'react-to-print';
 
 const ReportPrint = forwardRef(({ summary }, ref) => (
-    <div ref={ref} style={{ padding: '40px', color: '#000', background: '#fff', fontFamily: 'monospace' }}>
-        <h2 style={{ textAlign: 'center', textTransform: 'uppercase', marginBottom: '5px' }}>Ahmed's Center - Sales Report</h2>
-        <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '14px' }}>
-            <p>Period: {summary.period.toUpperCase()}</p>
-            <p>Range: {summary.startDate.toLocaleDateString()} - {summary.endDate.toLocaleDateString()}</p>
-            <p>Generated: {new Date().toLocaleString()}</p>
-        </div>
-        <p>------------------------------------------</p>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontWeight: 'bold' }}>
-            <span>Total Revenue:</span>
-            <span>₹{summary.totalRevenue.toFixed(2)}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <span>Total Plates Sold:</span>
-            <span>{summary.totalPlates}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <span>Total Orders:</span>
-            <span>{summary.saleCount}</span>
-        </div>
-        <p>------------------------------------------</p>
-        <h3 style={{ margin: '15px 0 10px 0' }}>Item-wise Sales:</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '5px', fontWeight: 'bold' }}>
-            <span>Item</span>
-            <span style={{ textAlign: 'center' }}>Qty</span>
-            <span style={{ textAlign: 'right' }}>Revenue</span>
-        </div>
-        <p>------------------------------------------</p>
-        {Object.entries(summary.items).map(([name, data]) => (
-            <div key={name} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '5px', marginBottom: '5px' }}>
-                <span>{name}</span>
-                <span style={{ textAlign: 'center' }}>{data.quantity}</span>
-                <span style={{ textAlign: 'right' }}>₹{data.revenue.toFixed(2)}</span>
+    <div ref={ref} style={{
+        padding: '40px',
+        color: '#000',
+        background: '#fff',
+        fontFamily: 'monospace',
+        position: 'relative',
+        overflow: 'hidden'
+    }}>
+        {/* Watermarks */}
+        <div style={{ position: 'absolute', top: '15%', left: '50%', transform: 'translate(-50%, -50%) rotate(-25deg)', fontSize: '32px', opacity: 0.08, fontWeight: '900', color: '#000', whiteSpace: 'nowrap', pointerEvents: 'none', width: '100%', textAlign: 'center' }}>AHMED'S CENTER</div>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-25deg)', fontSize: '32px', opacity: 0.08, fontWeight: '900', color: '#000', whiteSpace: 'nowrap', pointerEvents: 'none', width: '100%', textAlign: 'center' }}>AHMED'S CENTER</div>
+        <div style={{ position: 'absolute', top: '85%', left: '50%', transform: 'translate(-50%, -50%) rotate(-25deg)', fontSize: '32px', opacity: 0.08, fontWeight: '900', color: '#000', whiteSpace: 'nowrap', pointerEvents: 'none', width: '100%', textAlign: 'center' }}>AHMED'S CENTER</div>
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+            <h2 style={{ textAlign: 'center', textTransform: 'uppercase', marginBottom: '5px' }}>Ahmed's Center - Sales Report</h2>
+            <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '14px' }}>
+                <p>Period: {summary.period.toUpperCase()}</p>
+                <p>Range: {summary.startDate.toLocaleDateString()} - {summary.endDate.toLocaleDateString()}</p>
+                <p>Generated: {new Date().toLocaleString()}</p>
             </div>
-        ))}
-        <p>------------------------------------------</p>
-        <p style={{ textAlign: 'center', marginTop: '20px' }}>End of Report</p>
+            <p>------------------------------------------</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontWeight: 'bold' }}>
+                <span>Total Revenue:</span>
+                <span>₹{summary.totalRevenue.toFixed(2)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span>Total Plates Sold:</span>
+                <span>{summary.totalPlates}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span>Total Orders:</span>
+                <span>{summary.saleCount}</span>
+            </div>
+            <p>------------------------------------------</p>
+            <h3 style={{ margin: '15px 0 10px 0' }}>Item-wise Sales:</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '5px', fontWeight: 'bold' }}>
+                <span>Item</span>
+                <span style={{ textAlign: 'center' }}>Qty</span>
+                <span style={{ textAlign: 'right' }}>Revenue</span>
+            </div>
+            <p>------------------------------------------</p>
+            {Object.entries(summary.items).map(([name, data]) => (
+                <div key={name} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '5px', marginBottom: '5px' }}>
+                    <span>{name}</span>
+                    <span style={{ textAlign: 'center' }}>{data.quantity}</span>
+                    <span style={{ textAlign: 'right' }}>₹{data.revenue.toFixed(2)}</span>
+                </div>
+            ))}
+            <p>------------------------------------------</p>
+            <p style={{ textAlign: 'center', marginTop: '20px' }}>End of Report</p>
+        </div>
     </div>
 ));
 

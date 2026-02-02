@@ -90,24 +90,6 @@ const Navbar = ({ onRestoreDefaults }) => {
                             </div>
                         </div>
                     </div>
-
-                    <div style={{ width: '1px', height: '32px', background: 'var(--glass-border)' }} />
-
-                    {/* Logout Button */}
-                    <button
-                        onClick={() => setIsLogoutModalOpen(true)}
-                        className="btn btn-secondary hover-glass"
-                        style={{
-                            padding: '0.5rem 1rem',
-                            borderRadius: '0.75rem',
-                            border: '1px solid var(--accent)',
-                            color: 'var(--accent)',
-                            background: 'rgba(239, 68, 68, 0.05)',
-                            fontSize: '0.85rem'
-                        }}
-                    >
-                        <LogOut size={16} /> Logout
-                    </button>
                 </div>
             </nav>
 

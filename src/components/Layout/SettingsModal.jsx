@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Palette, Check, Save, Mail, Phone, MapPin, Camera, RefreshCw } from 'lucide-react';
+import { X, User, Palette, Check, Save, Mail, Phone, MapPin, Camera, RefreshCw, LogOut } from 'lucide-react';
 import { useAuth, THEMES } from '../../context/AuthContext';
 
 const SettingsModal = ({ isOpen, onClose, onRestoreDefaults }) => {
-    const { user, updateProfile, changeTheme, currentTheme, isAdmin } = useAuth();
+    const { user, updateProfile, changeTheme, currentTheme, isAdmin, logout } = useAuth();
     const [formData, setFormData] = useState({
         name: user?.name || '',
         email: user?.email || '',
@@ -140,6 +140,28 @@ const SettingsModal = ({ isOpen, onClose, onRestoreDefaults }) => {
                                     placeholder="Enter full address details..."
                                 />
                             </div>
+
+                            {/* Logout Button */}
+                            <button
+                                onClick={() => {
+                                    if (window.confirm('Are you sure you want to logout?')) {
+                                        logout();
+                                        onClose();
+                                    }
+                                }}
+                                className="btn btn-secondary"
+                                style={{
+                                    width: '100%',
+                                    justifyContent: 'center',
+                                    marginTop: '1rem',
+                                    marginBottom: '1rem',
+                                    background: 'rgba(239, 68, 68, 0.1)',
+                                    border: '1px solid var(--accent)',
+                                    color: 'var(--accent)'
+                                }}
+                            >
+                                <LogOut size={18} /> Logout
+                            </button>
 
                             {isAdmin && (
                                 <div className="form-group">

@@ -1,12 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
 import { ROLES } from '../constants';
 import { supabase } from '../lib/supabaseClient';
 
 const AuthContext = createContext();
 
 export const THEMES = {
-    // ... keep THEMES as they are ...
     GOLD: {
         name: 'Royal Gold',
         primary: '#ff8c00',
@@ -84,16 +82,20 @@ export const AuthProvider = ({ children }) => {
     });
 
     useEffect(() => {
-        localStorage.setItem('ahmed_users', JSON.stringify(users));
-    }, [users]);
+        // Check active sessions and sets the user
+        const session = supabase.auth.getSession().then(({ data: { session } }) => {
+            setUser(session?.user ?? null);
+            setLoading(false);
+        });
 
-    useEffect(() => {
-        if (user) {
-            localStorage.setItem('ahmed_session', JSON.stringify(user));
-        } else {
-            localStorage.removeItem('ahmed_session');
-        }
-    }, [user]);
+        // Listen for changes on auth state (logged in, signed out, etc.)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+            setLoading(false);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
 
     useEffect(() => {
         localStorage.setItem('ahmed_theme', currentTheme);
@@ -117,48 +119,55 @@ export const AuthProvider = ({ children }) => {
 
     const signup = async (userData) => {
         const formattedName = capitalize(userData.name);
-        const exists = users.find(u => u.name === formattedName);
-        if (exists) {
-            throw new Error('User already exists');
-        }
-        const newUser = {
-            ...userData,
-            name: formattedName,
-            id: Date.now(),
-            avatar: userData.avatar || null
-        };
-        setUsers(prev => [...prev, newUser]);
-        return newUser;
+        const email = `${formattedName.replace(/\s+/g, '')}@ahmedcenter.com`;
+
+        const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: userData.password,
+            options: {
+                data: {
+                    name: formattedName,
+                    role: userData.role || ROLES.BILLER,
+                    avatar: userData.avatar || null
+                }
+            }
+        });
+
+        if (error) throw error;
+        return data;
     };
 
-    const login = (name, password) => {
+    const login = async (name, password) => {
         const formattedName = capitalize(name);
-        const foundUser = users.find(u => u.name === formattedName && u.password === password);
-        if (!foundUser) {
-            throw new Error('Invalid username or password');
-        }
-        setUser(foundUser);
-        return foundUser;
+        const email = `${formattedName.replace(/\s+/g, '')}@ahmedcenter.com`;
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+        });
+
+        if (error) throw error;
+        return data.user;
     };
 
-    const logout = () => {
+    const logout = async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
         setUser(null);
     };
 
-    const updateProfile = (updates) => {
-        const formattedUpdates = { ...updates };
-        if (updates.name) formattedUpdates.name = capitalize(updates.name);
-
-        const updatedUser = { ...user, ...formattedUpdates };
-        setUser(updatedUser);
-        setUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+    const updateProfile = async (updates) => {
+        const { error } = await supabase.auth.updateUser({
+            data: updates
+        });
+        if (error) throw error;
     };
 
     const changeTheme = (themeKey) => {
         setCurrentTheme(themeKey);
     };
 
-    const emergencyReset = () => {
+    const emergencyReset = async () => {
         localStorage.clear();
         await supabase.auth.signOut();
         window.location.reload();
@@ -168,8 +177,8 @@ export const AuthProvider = ({ children }) => {
     const role = user?.user_metadata?.role;
 
     const value = {
-        user,
-        users,
+        user: user ? { ...user, ...user.user_metadata, role } : null,
+        loading,
         signup,
         login,
         logout,

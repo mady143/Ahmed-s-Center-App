@@ -1,22 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Upload, Trash2, ChevronDown, PlusCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../../lib/supabaseClient';
 
-const AddProductModal = ({ isOpen, onClose, onAdd, onDeleteCategory, existingCategories }) => {
-    const [formData, setFormData] = useState({
+const AddProductModal = ({ isOpen, onClose, onAdd, onEdit, onDeleteCategory, existingCategories, productToEdit }) => {
+    const initialFormState = {
         name: '',
         price: '',
         description: '',
         category: 'Veg',
         image: ''
-    });
+    };
 
+    const [formData, setFormData] = useState(initialFormState);
+    const [imageFile, setImageFile] = useState(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [categoryToDelete, setCategoryToDelete] = useState(null);
+    const [isNewCategory, setIsNewCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+
+    useEffect(() => {
+        if (productToEdit) {
+            setFormData({
+                name: productToEdit.name || '',
+                price: productToEdit.price || '',
+                description: productToEdit.description || '',
+                category: productToEdit.category || 'Veg',
+                image: productToEdit.image || ''
+            });
+            setImageFile(null);
+            setIsNewCategory(false);
+        } else {
+            setFormData(initialFormState);
+            setImageFile(null);
+        }
+    }, [productToEdit, isOpen]);
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            setImageFile(file);
+            // Create preview for immediate UI feedback
             const reader = new FileReader();
             reader.onloadend = () => {
                 setFormData({ ...formData, image: reader.result });
@@ -25,25 +49,65 @@ const AddProductModal = ({ isOpen, onClose, onAdd, onDeleteCategory, existingCat
         }
     };
 
-    const [isNewCategory, setIsNewCategory] = useState(false);
-    const [newCategoryName, setNewCategoryName] = useState('');
-
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+
+        let imageUrl = formData.image;
+
+        // Upload image to Supabase Storage if a new file was selected
+        if (imageFile) {
+            try {
+                console.log('Starting image upload...', imageFile.name);
+                const fileExt = imageFile.name.split('.').pop();
+                const fileName = `${Date.now()}.${fileExt}`;
+                const filePath = fileName;
+
+                console.log('Uploading to path:', filePath);
+
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('products')
+                    .upload(filePath, imageFile);
+
+                if (uploadError) {
+                    console.error('Upload error:', uploadError);
+                    throw uploadError;
+                }
+
+                console.log('Upload successful:', uploadData);
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('products')
+                    .getPublicUrl(filePath);
+
+                console.log('Public URL:', publicUrl);
+                imageUrl = publicUrl;
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                alert(`Failed to upload image: ${error.message}\n\nPlease check:\n1. Is your bucket named "products"?\n2. Is the bucket public?\n3. Did you run the storage policies?`);
+                return;
+            }
+        }
+
         const category = isNewCategory ? newCategoryName : formData.category;
-        onAdd({
+
+        const productData = {
             ...formData,
+            image: imageUrl,
             category: category || 'Other',
-            id: Date.now(),
             price: parseFloat(formData.price)
-        });
-        setFormData({
-            name: '',
-            price: '',
-            description: '',
-            category: 'Veg',
-            image: ''
-        });
+        };
+
+        if (productToEdit) {
+            onEdit({ ...productData, id: productToEdit.id });
+        } else {
+            onAdd({ ...productData, id: Date.now() });
+        }
+
+        if (!productToEdit) {
+            setFormData(initialFormState);
+            setImageFile(null);
+        }
+
         setIsNewCategory(false);
         setNewCategoryName('');
         onClose();
@@ -65,7 +129,9 @@ const AddProductModal = ({ isOpen, onClose, onAdd, onDeleteCategory, existingCat
                             onClick={e => e.stopPropagation()}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
-                                <h2 style={{ fontSize: '1.75rem', fontWeight: '900' }}>Add New Item</h2>
+                                <h2 style={{ fontSize: '1.75rem', fontWeight: '900' }}>
+                                    {productToEdit ? 'Edit Item' : 'Add New Item'}
+                                </h2>
                                 <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X /></button>
                             </div>
 
@@ -268,7 +334,7 @@ const AddProductModal = ({ isOpen, onClose, onAdd, onDeleteCategory, existingCat
                                 </div>
 
                                 <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}>
-                                    Add to Menu
+                                    {productToEdit ? 'Save Changes' : 'Add to Menu'}
                                 </button>
                             </form>
                         </motion.div>

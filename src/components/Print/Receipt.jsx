@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 
-const Receipt = forwardRef(({ cart, total }, ref) => {
+const Receipt = forwardRef(({ cart, total, paymentMethod = 'Cash' }, ref) => {
     const date = new Date().toLocaleString('en-IN', {
         day: '2-digit',
         month: 'short',
@@ -76,6 +76,10 @@ const Receipt = forwardRef(({ cart, total }, ref) => {
                 </div>
             </div>
 
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
+                <span>Payment Method</span>
+                <span style={{ fontWeight: 'bold' }}>{paymentMethod}</span>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
                 <span>Amount Received</span>
                 <span>{total.toFixed(2)}</span>

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSales } from '../../context/SalesContext';
@@ -12,6 +12,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
     const { user } = useAuth();
     const { recordSale } = useSales();
     const componentRef = useRef();
+    const [paymentMethod, setPaymentMethod] = useState('Cash');
 
     const handlePrint = useReactToPrint({
         contentRef: componentRef,
@@ -92,9 +93,38 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
                         {cart.length > 0 && (
                             <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {/* Payment Method Selection */}
+                                <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '0.75rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '600', fontSize: '0.9rem' }}>Payment Method</label>
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flex: 1 }}>
+                                            <input
+                                                type="radio"
+                                                name="payment"
+                                                value="Cash"
+                                                checked={paymentMethod === 'Cash'}
+                                                onChange={(e) => setPaymentMethod(e.target.value)}
+                                                style={{ cursor: 'pointer', accentColor: 'var(--primary)', width: '18px', height: '18px' }}
+                                            />
+                                            <span style={{ fontSize: '0.95rem' }}>Cash</span>
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flex: 1 }}>
+                                            <input
+                                                type="radio"
+                                                name="payment"
+                                                value="QR Code"
+                                                checked={paymentMethod === 'QR Code'}
+                                                onChange={(e) => setPaymentMethod(e.target.value)}
+                                                style={{ cursor: 'pointer', accentColor: 'var(--primary)', width: '18px', height: '18px' }}
+                                            />
+                                            <span style={{ fontSize: '0.95rem' }}>QR Code</span>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: '700' }}>
                                     <span>Total</span>
-                                    <span style={{ color: 'var(--primary)' }}>${totalPrice.toFixed(2)}</span>
+                                    <span style={{ color: 'var(--primary)' }}>₹{totalPrice.toFixed(2)}</span>
                                 </div>
                                 <button
                                     onClick={() => {
@@ -114,7 +144,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
                         {/* Hidden Receipt for Printing */}
                         <div style={{ display: 'none' }}>
-                            <Receipt ref={componentRef} cart={cart} total={totalPrice} />
+                            <Receipt ref={componentRef} cart={cart} total={totalPrice} paymentMethod={paymentMethod} />
                         </div>
                     </motion.div>
                 </>

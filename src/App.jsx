@@ -9,57 +9,37 @@ import { useAuth } from './context/AuthContext';
 import { useCart } from './context/CartContext';
 import { ShoppingCart, Plus, Search, ChevronRight, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const INITIAL_PRODUCTS = [
-  { id: 1, name: 'Dry Gobi Half Plate', price: 60, category: 'Veg', description: 'Crispy fried cauliflower florets with spices.', image: 'https://images.unsplash.com/photo-1626074353765-517a681e40be?auto=format&fit=crop&w=400&q=80' },
-  { id: 2, name: 'Dry Gobi Full Plate', price: 100, category: 'Veg', description: 'Large portion of crispy fried cauliflower florets.', image: 'https://images.unsplash.com/photo-1626074353765-517a681e40be?auto=format&fit=crop&w=400&q=80' },
-  { id: 3, name: 'Mini Chicken Pakoda', price: 90, category: 'Non-Veg', description: 'Bite-sized crispy chicken pakodas.', image: 'https://images.unsplash.com/photo-1567620832903-9fc8deee6a6f?auto=format&fit=crop&w=400&q=80' },
-  { id: 4, name: 'Chicken Pakoda Half Plate', price: 160, category: 'Non-Veg', description: 'Medium portion of spiced chicken pakodas.', image: 'https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&w=400&q=80' },
-  { id: 5, name: 'Chicken Pakoda Full Plate', price: 300, category: 'Non-Veg', description: 'Full sharing portion of crispy chicken pakodas.', image: 'https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&w=400&q=80' },
-  { id: 6, name: 'Fresh Lemon Juice', price: 30, category: 'Beverages', description: 'Refreshing sweet and salty lemon juice.', image: 'https://images.unsplash.com/photo-1523473009695-c3a51242d2bf?auto=format&fit=crop&w=400&q=80' }
-];
+import { supabase } from './lib/supabaseClient';
 
 function AppContent() {
   const { cart } = useCart();
   const { isAdmin } = useAuth();
-  const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem('ahmed_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('ahmed_products', JSON.stringify(products));
-  }, [products]);
-
-  useEffect(() => {
-    if (products.length === 0) {
-      setProducts(INITIAL_PRODUCTS);
-    }
-  }, []);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('id');
 
       if (error) throw error;
-
-      if (data.length === 0) {
-        setProducts(INITIAL_PRODUCTS);
-      } else {
-        setProducts(data);
-      }
-    } catch (err) {
-      console.error('Error fetching products:', err.message);
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
@@ -79,24 +59,86 @@ function AppContent() {
     return acc;
   }, {});
 
-  const handleAddProduct = (newProduct) => {
-    setProducts([...products, newProduct]);
+  const handleAddProduct = async (newProduct) => {
+    try {
+      // Remove id if it's a temp ID or let DB handle it
+      const { id, ...productData } = newProduct;
+      const { data, error } = await supabase
+        .from('products')
+        .insert([productData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      setProducts([...products, data]);
+    } catch (error) {
+      console.error('Error adding product:', error);
+      alert('Failed to add product');
+    }
   };
 
-  const handleDeleteCategory = (categoryName) => {
-    setProducts(products.filter(p => p.category?.toUpperCase() !== categoryName.toUpperCase()));
-    if (activeCategory === categoryName.toUpperCase()) {
-      setActiveCategory('ALL');
+  const handleEditProduct = (product) => {
+    setEditingProduct(product);
+    setIsProductModalOpen(true);
+  };
+
+  const handleUpdateProduct = async (updatedProduct) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: updatedProduct.name,
+          price: updatedProduct.price,
+          description: updatedProduct.description,
+          category: updatedProduct.category,
+          image: updatedProduct.image
+        })
+        .eq('id', updatedProduct.id);
+
+      if (error) throw error;
+
+      setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+      setEditingProduct(null);
+    } catch (error) {
+      console.error('Error updating product:', error);
+      alert('Failed to update product');
+    }
+  };
+
+  const handleDeleteCategory = async (categoryName) => {
+    if (!window.confirm(`Are you sure you want to delete all products in ${categoryName}?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .ilike('category', categoryName);
+
+      if (error) throw error;
+
+      setProducts(products.filter(p => p.category?.toUpperCase() !== categoryName.toUpperCase()));
+      if (activeCategory === categoryName.toUpperCase()) {
+        setActiveCategory('ALL');
+      }
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      alert('Failed to delete category');
     }
   };
 
   const restoreDefaultMenu = () => {
-    setProducts(prev => {
-      const existingNames = new Set(prev.map(p => p.name.toLowerCase()));
-      const missingDefaults = INITIAL_PRODUCTS.filter(p => !existingNames.has(p.name.toLowerCase()));
-      return [...prev, ...missingDefaults];
-    });
+    // This functionality might need to be rethought for a real DB
+    // For now, we'll just log it or maybe re-insert default items if the DB is empty?
+    alert("Restoring defaults is disabled in database mode to prevent overwriting live data.");
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--text-main)' }}>
+        Loading menu...
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: '5rem' }}>
@@ -138,7 +180,7 @@ function AppContent() {
               </h3>
               <div className="glass" style={{ borderRadius: '1.5rem', overflow: 'hidden' }}>
                 {items.map(product => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={product.id} product={product} onEdit={handleEditProduct} />
                 ))}
               </div>
             </div>
@@ -158,7 +200,10 @@ function AppContent() {
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => {
+                setEditingProduct(null);
+                setIsProductModalOpen(true);
+              }}
               className="btn btn-primary"
               style={{ width: '60px', height: '60px', borderRadius: '50%', padding: 0, justifyContent: 'center', boxShadow: '0 10px 25px rgba(255, 140, 0, 0.5)' }}
             >
@@ -197,11 +242,16 @@ function AppContent() {
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
       <AddProductModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        isOpen={isProductModalOpen}
+        onClose={() => {
+          setIsProductModalOpen(false);
+          setEditingProduct(null);
+        }}
         onAdd={handleAddProduct}
+        onEdit={handleUpdateProduct}
         onDeleteCategory={handleDeleteCategory}
         existingCategories={dynamicCategories.filter(c => c !== 'ALL')}
+        productToEdit={editingProduct}
       />
       <ReportsModal
         isOpen={isReportsOpen}

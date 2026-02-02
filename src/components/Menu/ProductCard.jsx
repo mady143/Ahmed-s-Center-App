@@ -1,11 +1,11 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import { ShoppingCart, Plus, Info } from 'lucide-react';
+import { ShoppingCart, Plus, Info, Pencil } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const ProductCard = ({ product }) => {
-    const { isGuest } = useAuth();
+const ProductCard = ({ product, onEdit }) => {
+    const { isGuest, isAdmin } = useAuth();
     const { addToCart } = useCart();
 
     return (
@@ -22,7 +22,7 @@ const ProductCard = ({ product }) => {
                     {product.description}
                 </p>
 
-                <div style={{ marginTop: '1rem' }}>
+                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     {!isGuest ? (
                         <button
                             onClick={() => addToCart(product)}
@@ -35,6 +35,17 @@ const ProductCard = ({ product }) => {
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', border: '1px solid var(--glass-border)', padding: '0.2rem 0.5rem', borderRadius: '0.4rem' }}>
                             Guest View
                         </span>
+                    )}
+
+                    {isAdmin && (
+                        <button
+                            onClick={() => onEdit && onEdit(product)}
+                            className="btn btn-secondary glass"
+                            style={{ padding: '0.4rem', borderRadius: '0.5rem', height: '32px', width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Edit Item"
+                        >
+                            <Pencil size={14} />
+                        </button>
                     )}
                 </div>
             </div>

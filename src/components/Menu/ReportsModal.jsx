@@ -174,7 +174,7 @@ const ReportsModal = ({ isOpen, onClose }) => {
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'center' }}>
                             <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.75rem' }}>
-                                <BarChart3 color="var(--primary)" /> Sales Reports
+                                <BarChart3 color="var(--primary)" /> Sales Reports <span style={{ fontSize: '0.8rem', opacity: 0.5, marginLeft: '0.5rem' }}>(v1.2)</span>
                             </h2>
                             <button onClick={onClose} className="btn btn-secondary" style={{ padding: '0.5rem', borderRadius: '50%' }}><X size={20} /></button>
                         </div>

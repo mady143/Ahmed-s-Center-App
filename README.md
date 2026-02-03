@@ -27,8 +27,10 @@ Ahmed's Center App is a premium snack ordering and management system designed fo
 - **Excel Export**: High-quality `.xlsx` export featuring a detailed transaction list with borders, centered headers, and currency formatting.
 
 ### 🎨 Premium UI/UX
-- **Dark Theme**: Eye-catching dark interface optimized for OLED screens.
-- **Glassmorphism**: Modern frosted glass effects.
+- **Dark Theme**: Eye-catching dark interface optimized for OLED screens with consistent brand colors.
+- **Glassmorphism**: Modern frosted glass effects across all modals and navigation.
+- **Custom Logout Experience**: Replaced native browser popups with a premium, centered, glass-themed confirmation modal.
+- **Deployment Verification**: Visible version tags (e.g., v1.2) in Sales Reports to ensure local and production environments are perfectly synced.
 - **Micro-Animations**: Smooth transitions and interactive elements powered by Framer Motion.
 - **Mobile Optimized**: Responsive design that feels like a native app on mobile devices.
 

@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Palette, Check, Save, Mail, Phone, MapPin, Camera, RefreshCw, LogOut } from 'lucide-react';
 import { useAuth, THEMES } from '../../context/AuthContext';
+import LogoutModal from './LogoutModal';
 
 const SettingsModal = ({ isOpen, onClose, onRestoreDefaults }) => {
     const { user, updateProfile, changeTheme, currentTheme, isAdmin, logout } = useAuth();
+    const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
     const [formData, setFormData] = useState({
         name: user?.name || '',
         email: user?.email || '',
@@ -143,12 +145,8 @@ const SettingsModal = ({ isOpen, onClose, onRestoreDefaults }) => {
 
                             {/* Logout Button */}
                             <button
-                                onClick={() => {
-                                    if (window.confirm('Are you sure you want to logout?')) {
-                                        logout();
-                                        onClose();
-                                    }
-                                }}
+                                type="button"
+                                onClick={() => setIsLogoutConfirmOpen(true)}
                                 className="btn btn-secondary"
                                 style={{
                                     width: '100%',
@@ -229,6 +227,15 @@ const SettingsModal = ({ isOpen, onClose, onRestoreDefaults }) => {
                     </motion.div>
                 </div>
             )}
+
+            <LogoutModal
+                isOpen={isLogoutConfirmOpen}
+                onClose={() => setIsLogoutConfirmOpen(false)}
+                onConfirm={() => {
+                    logout();
+                    onClose();
+                }}
+            />
         </AnimatePresence>
     );
 };

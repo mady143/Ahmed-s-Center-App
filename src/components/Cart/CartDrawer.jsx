@@ -1,11 +1,14 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSales } from '../../context/SalesContext';
-import { Trash2, Plus, Minus, Printer, X, ShoppingBag } from 'lucide-react';
+import { Trash2, Plus, Minus, Printer, X, ShoppingBag, CheckCircle } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import Receipt from '../Print/Receipt';
+import CheckoutModal from './CheckoutModal';
+import { generateOrderNo } from '../../utils/orderIdGenerator';
 import { motion, AnimatePresence } from 'framer-motion';
+import StatusModal from '../UI/StatusModal';
 
 const CartDrawer = ({ isOpen, onClose }) => {
     const { cart, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
@@ -13,16 +16,47 @@ const CartDrawer = ({ isOpen, onClose }) => {
     const { recordSale } = useSales();
     const componentRef = useRef();
     const [paymentMethod, setPaymentMethod] = useState('Cash');
+    const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+    const [currentOrderNo, setCurrentOrderNo] = useState(null);
+    const [statusModal, setStatusModal] = useState({ isOpen: false, message: '', type: 'success' });
+
+    useEffect(() => {
+        if (isOpen) {
+            setCurrentOrderNo(generateOrderNo());
+        }
+    }, [isOpen]);
 
     const handlePrint = useReactToPrint({
         contentRef: componentRef,
         documentTitle: "Ahmed's Center",
-        onAfterPrint: () => {
-            recordSale(cart, totalPrice, paymentMethod);
+        onAfterPrint: async () => {
+            await recordSale(cart, totalPrice, paymentMethod, currentOrderNo);
             clearCart();
             onClose();
         }
     });
+
+    const handleCheckoutClick = () => {
+        // orderNo is now managed by useEffect, no need to generate here
+        setIsCheckoutModalOpen(true);
+    };
+
+    const handleCheckoutConfirm = async (shouldPrint) => {
+        setIsCheckoutModalOpen(false);
+        if (shouldPrint) {
+            handlePrint();
+        } else {
+            await recordSale(cart, totalPrice, paymentMethod, currentOrderNo); // Pass currentOrderNo to recordSale
+            clearCart();
+            onClose();
+            setStatusModal({
+                isOpen: true,
+                message: 'Your sale has been recorded and order number generated.',
+                title: 'Sale Recorded!',
+                type: 'success'
+            });
+        }
+    };
 
     return (
         <AnimatePresence>
@@ -76,7 +110,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                         <img src={item.image} alt={item.name} style={{ width: '60px', height: '60px', borderRadius: '0.5rem', objectFit: 'cover' }} />
                                         <div style={{ flexGrow: 1 }}>
                                             <h4 style={{ fontWeight: '600' }}>{item.name}</h4>
-                                            <p style={{ color: 'var(--primary)', fontWeight: 'bold' }}>${item.price}</p>
+                                            <p style={{ color: 'var(--primary)', fontWeight: 'bold' }}>₹{item.price}</p>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                             <button onClick={() => updateQuantity(item.id, -1)} className="btn btn-secondary" style={{ padding: '0.2rem' }}><Minus size={14} /></button>
@@ -126,16 +160,15 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                     <span>Total</span>
                                     <span style={{ color: 'var(--primary)' }}>₹{totalPrice.toFixed(2)}</span>
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        handlePrint();
-                                        // Optional: clearCart() after print in real scenario
-                                    }}
-                                    className="btn btn-primary"
-                                    style={{ width: '100%', justifyContent: 'center', padding: '1rem' }}
-                                >
-                                    <Printer size={20} /> Print Receipt
-                                </button>
+                                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                    <button
+                                        onClick={handleCheckoutClick}
+                                        className="btn btn-primary"
+                                        style={{ flex: 1, justifyContent: 'center', padding: '1rem', backgroundColor: 'var(--primary)', color: 'white' }}
+                                    >
+                                        <CheckCircle size={20} style={{ marginRight: '0.5rem' }} /> Checkout
+                                    </button>
+                                </div>
                                 <button onClick={clearCart} className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
                                     Clear Cart
                                 </button>
@@ -144,11 +177,25 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
                         {/* Hidden Receipt for Printing */}
                         <div style={{ display: 'none' }}>
-                            <Receipt ref={componentRef} cart={cart} total={totalPrice} paymentMethod={paymentMethod} />
+                            <Receipt ref={componentRef} cart={cart} total={totalPrice} paymentMethod={paymentMethod} orderNo={currentOrderNo} />
                         </div>
                     </motion.div>
                 </>
             )}
+
+            <CheckoutModal
+                isOpen={isCheckoutModalOpen}
+                onClose={() => setIsCheckoutModalOpen(false)}
+                onConfirm={handleCheckoutConfirm}
+            />
+
+            <StatusModal
+                isOpen={statusModal.isOpen}
+                onClose={() => setStatusModal({ ...statusModal, isOpen: false })}
+                message={statusModal.message}
+                title={statusModal.title}
+                type={statusModal.type}
+            />
         </AnimatePresence>
     );
 };

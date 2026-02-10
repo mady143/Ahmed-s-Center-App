@@ -3,10 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Palette, Check, Save, Mail, Phone, MapPin, Camera, RefreshCw, LogOut } from 'lucide-react';
 import { useAuth, THEMES } from '../../context/AuthContext';
 import LogoutModal from './LogoutModal';
+import ConfirmModal from '../UI/ConfirmModal';
 
 const SettingsModal = ({ isOpen, onClose, onRestoreDefaults }) => {
     const { user, updateProfile, changeTheme, currentTheme, isAdmin, logout } = useAuth();
     const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+    const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
     const [formData, setFormData] = useState({
         name: user?.name || '',
         email: user?.email || '',
@@ -196,12 +198,7 @@ const SettingsModal = ({ isOpen, onClose, onRestoreDefaults }) => {
                         <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)', textAlign: 'center' }}>
                             {isAdmin && (
                                 <button
-                                    onClick={() => {
-                                        if (window.confirm('Restore default menu items and categories?')) {
-                                            onRestoreDefaults();
-                                            onClose();
-                                        }
-                                    }}
+                                    onClick={() => setIsRestoreConfirmOpen(true)}
                                     style={{
                                         background: 'rgba(255, 140, 0, 0.1)',
                                         border: '1px solid var(--glass-border)',
@@ -235,6 +232,19 @@ const SettingsModal = ({ isOpen, onClose, onRestoreDefaults }) => {
                     logout();
                     onClose();
                 }}
+            />
+
+            <ConfirmModal
+                isOpen={isRestoreConfirmOpen}
+                onClose={() => setIsRestoreConfirmOpen(false)}
+                onConfirm={() => {
+                    onRestoreDefaults();
+                    onClose();
+                }}
+                title="Restore Defaults?"
+                message="This will restore all default menu items and categories. Are you sure you want to proceed?"
+                confirmText="Restore Now"
+                type="warning"
             />
         </AnimatePresence>
     );

@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Shield, LogIn, UserPlus, Key, AlertCircle, Eye, EyeOff, RefreshCw, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ROLES } from '../constants';
+import StatusModal from './UI/StatusModal';
+import ConfirmModal from './UI/ConfirmModal';
 
 const Auth = () => {
     const { signup, login, emergencyReset } = useAuth();
@@ -15,6 +17,8 @@ const Auth = () => {
         password: '',
         role: ROLES.BILLER
     });
+    const [statusModal, setStatusModal] = useState({ isOpen: false, message: '', type: 'success', title: '' });
+    const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -40,6 +44,7 @@ const Auth = () => {
             }
         } catch (err) {
             setError(err.message);
+            setStatusModal({ isOpen: true, message: err.message, title: 'Authentication Error', type: 'error' });
         }
     };
 
@@ -226,11 +231,7 @@ const Auth = () => {
                 <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)' }}>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Having trouble with credentials?</p>
                     <button
-                        onClick={() => {
-                            if (window.confirm('This will delete all users and data. Are you sure?')) {
-                                emergencyReset();
-                            }
-                        }}
+                        onClick={() => setIsResetConfirmOpen(true)}
                         style={{
                             background: 'none',
                             border: '1px solid rgba(239, 68, 68, 0.2)',
@@ -249,6 +250,24 @@ const Auth = () => {
                         <RefreshCw size={14} /> Reset System Data
                     </button>
                 </div>
+
+                <StatusModal
+                    isOpen={statusModal.isOpen}
+                    onClose={() => setStatusModal({ ...statusModal, isOpen: false })}
+                    message={statusModal.message}
+                    title={statusModal.title}
+                    type={statusModal.type}
+                />
+
+                <ConfirmModal
+                    isOpen={isResetConfirmOpen}
+                    onClose={() => setIsResetConfirmOpen(false)}
+                    onConfirm={() => emergencyReset()}
+                    title="Emergency Reset?"
+                    message="This will delete ALL users and menu data. This action is IRREVERSIBLE. Are you sure you want to proceed?"
+                    confirmText="Reset Everything"
+                    type="danger"
+                />
             </motion.div>
         </div>
     );

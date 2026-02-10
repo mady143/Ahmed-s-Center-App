@@ -1,7 +1,8 @@
 import React, { forwardRef } from 'react';
 
-const Receipt = forwardRef(({ cart, total, paymentMethod = 'Cash' }, ref) => {
-    const date = new Date().toLocaleString('en-IN', {
+const Receipt = forwardRef(({ cart, total, paymentMethod = 'Cash', orderNo, timestamp }, ref) => {
+    const receiptDate = timestamp ? new Date(timestamp) : new Date();
+    const date = receiptDate.toLocaleString('en-IN', {
         day: '2-digit',
         month: 'short',
         year: '2-digit',
@@ -11,7 +12,7 @@ const Receipt = forwardRef(({ cart, total, paymentMethod = 'Cash' }, ref) => {
     });
 
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const billNo = `IAA-${Math.floor(Math.random() * 1000)}`;
+    const billNo = orderNo || `IAA-${Math.floor(Math.random() * 1000)}`;
 
     return (
         <div ref={ref} style={{
@@ -40,7 +41,7 @@ const Receipt = forwardRef(({ cart, total, paymentMethod = 'Cash' }, ref) => {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', position: 'relative', zIndex: 1 }}>
-                <span>Bill {billNo}</span>
+                <span>Order No: {billNo}</span>
                 <span>{date}</span>
             </div>
             <p style={{ margin: 0, position: 'relative', zIndex: 1 }}>---------------------------------</p>

@@ -9,6 +9,8 @@ import { useAuth } from './context/AuthContext';
 import { useCart } from './context/CartContext';
 import { ShoppingCart, Plus, Search, ChevronRight, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import StatusModal from './components/UI/StatusModal';
+import ConfirmModal from './components/UI/ConfirmModal';
 import { supabase } from './lib/supabaseClient';
 
 function AppContent() {
@@ -43,6 +45,8 @@ function AppContent() {
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
+  const [statusModal, setStatusModal] = useState({ isOpen: false, message: '', type: 'success', title: '' });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, categoryName: '' });
 
   const dynamicCategories = ['ALL', ...new Set(products.map(p => p.category?.toUpperCase()).filter(Boolean))];
 
@@ -71,9 +75,10 @@ function AppContent() {
 
       if (error) throw error;
       setProducts([...products, data]);
+      setStatusModal({ isOpen: true, message: 'Product has been added successfully.', title: 'Product Added', type: 'success' });
     } catch (error) {
       console.error('Error adding product:', error);
-      alert('Failed to add product');
+      setStatusModal({ isOpen: true, message: error.message || 'Failed to add product', title: 'Error', type: 'error' });
     }
   };
 
@@ -99,14 +104,18 @@ function AppContent() {
 
       setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
       setEditingProduct(null);
+      setStatusModal({ isOpen: true, message: 'Product details updated successfully.', title: 'Product Updated', type: 'success' });
     } catch (error) {
       console.error('Error updating product:', error);
-      alert('Failed to update product');
+      setStatusModal({ isOpen: true, message: error.message || 'Failed to update product', title: 'Error', type: 'error' });
     }
   };
 
   const handleDeleteCategory = async (categoryName) => {
-    if (!window.confirm(`Are you sure you want to delete all products in ${categoryName}?`)) return;
+    setConfirmModal({ isOpen: true, categoryName });
+  };
+
+  const performDeleteCategory = async (categoryName) => {
 
     try {
       const { error } = await supabase
@@ -120,16 +129,20 @@ function AppContent() {
       if (activeCategory === categoryName.toUpperCase()) {
         setActiveCategory('ALL');
       }
+      setStatusModal({ isOpen: true, message: `All products in ${categoryName} have been deleted.`, title: 'Category Deleted', type: 'success' });
     } catch (error) {
       console.error('Error deleting category:', error);
-      alert('Failed to delete category');
+      setStatusModal({ isOpen: true, message: error.message || 'Failed to delete category', title: 'Error', type: 'error' });
     }
   };
 
   const restoreDefaultMenu = () => {
-    // This functionality might need to be rethought for a real DB
-    // For now, we'll just log it or maybe re-insert default items if the DB is empty?
-    alert("Restoring defaults is disabled in database mode to prevent overwriting live data.");
+    setStatusModal({
+      isOpen: true,
+      message: "Restoring defaults is disabled in database mode to prevent overwriting live data.",
+      title: "Action Restricted",
+      type: "error"
+    });
   };
 
   if (loading) {
@@ -252,10 +265,30 @@ function AppContent() {
         onDeleteCategory={handleDeleteCategory}
         existingCategories={dynamicCategories.filter(c => c !== 'ALL')}
         productToEdit={editingProduct}
+        setStatusModal={setStatusModal}
       />
       <ReportsModal
         isOpen={isReportsOpen}
         onClose={() => setIsReportsOpen(false)}
+        products={products}
+      />
+
+      <StatusModal
+        isOpen={statusModal.isOpen}
+        onClose={() => setStatusModal({ ...statusModal, isOpen: false })}
+        message={statusModal.message}
+        title={statusModal.title}
+        type={statusModal.type}
+      />
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={() => performDeleteCategory(confirmModal.categoryName)}
+        title="Delete Category?"
+        message={`Are you sure you want to delete all products in "${confirmModal.categoryName}"? This action cannot be undone.`}
+        confirmText="Delete All"
+        type="danger"
       />
     </div>
   );

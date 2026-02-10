@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { X, Upload, Trash2, ChevronDown, PlusCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabaseClient';
+import StatusModal from '../UI/StatusModal';
 
-const AddProductModal = ({ isOpen, onClose, onAdd, onEdit, onDeleteCategory, existingCategories, productToEdit }) => {
+const AddProductModal = ({ isOpen, onClose, onAdd, onEdit, onDeleteCategory, existingCategories, productToEdit, setStatusModal }) => {
     const initialFormState = {
         name: '',
         price: '',
@@ -83,7 +84,16 @@ const AddProductModal = ({ isOpen, onClose, onAdd, onEdit, onDeleteCategory, exi
                 imageUrl = publicUrl;
             } catch (error) {
                 console.error('Error uploading image:', error);
-                alert(`Failed to upload image: ${error.message}\n\nPlease check:\n1. Is your bucket named "products"?\n2. Is the bucket public?\n3. Did you run the storage policies?`);
+                if (setStatusModal) {
+                    setStatusModal({
+                        isOpen: true,
+                        message: `Failed to upload image: ${error.message}. Please check if the "products" bucket exists and is public.`,
+                        title: 'Upload Error',
+                        type: 'error'
+                    });
+                } else {
+                    alert(`Failed to upload image: ${error.message}`);
+                }
                 return;
             }
         }

@@ -5,12 +5,11 @@ const SalesContext = createContext();
 
 export const SalesProvider = ({ children }) => {
     const [sales, setSales] = useState([]);
+    const [wastage, setWastage] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const fetchSales = async () => {
         try {
-            // Fetch sales from the last 30 days by default or something manageable
-            // For now, let's just fetch all since it's a new system
             const { data, error } = await supabase
                 .from('sales')
                 .select('*')
@@ -20,16 +19,33 @@ export const SalesProvider = ({ children }) => {
             setSales(data || []);
         } catch (error) {
             console.error('Error fetching sales:', error);
-        } finally {
-            setLoading(false);
+        }
+    };
+
+    const fetchWastage = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('wastage')
+                .select('*')
+                .order('timestamp', { ascending: false });
+
+            if (error) throw error;
+            setWastage(data || []);
+        } catch (error) {
+            console.error('Error fetching wastage:', error);
         }
     };
 
     useEffect(() => {
-        fetchSales();
+        const init = async () => {
+            setLoading(true);
+            await Promise.all([fetchSales(), fetchWastage()]);
+            setLoading(false);
+        };
+        init();
     }, []);
 
-    const recordSale = async (items, total, paymentMethod = 'Cash') => {
+    const recordSale = async (items, total, paymentMethod = 'Cash', orderNo = null) => {
         const saleItems = items.map(item => ({
             id: item.id,
             name: item.name,
@@ -41,7 +57,8 @@ export const SalesProvider = ({ children }) => {
             timestamp: new Date().toISOString(),
             items: saleItems,
             total,
-            payment_method: paymentMethod
+            payment_method: paymentMethod,
+            order_no: orderNo
         };
 
         try {
@@ -53,27 +70,147 @@ export const SalesProvider = ({ children }) => {
 
             if (error) throw error;
             setSales(prev => [data, ...prev]);
+            return { success: true, data };
         } catch (error) {
             console.error('Error recording sale:', error);
-            alert('Failed to record sale');
+            throw error;
+        }
+    };
+
+    const addWastage = async (itemName, quantity, costPerUnit, reason = '', timestamp = null) => {
+        const newWastage = {
+            timestamp: timestamp || new Date().toISOString(),
+            item_name: itemName,
+            quantity: parseInt(quantity),
+            cost_per_unit: parseFloat(costPerUnit),
+            reason
+        };
+
+        try {
+            const { data, error } = await supabase
+                .from('wastage')
+                .insert([newWastage])
+                .select()
+                .single();
+
+            if (error) throw error;
+            setWastage(prev => [data, ...prev]);
+            return { success: true };
+        } catch (error) {
+            console.error('Error adding wastage:', error);
+            return { success: false, error };
+        }
+    };
+
+    const addBatchWastage = async (items) => {
+        const newWastageRecords = items.map(item => ({
+            timestamp: item.timestamp || new Date().toISOString(),
+            item_name: item.name,
+            quantity: parseInt(item.quantity),
+            cost_per_unit: parseFloat(item.cost),
+            reason: item.reason || ''
+        }));
+
+        try {
+            const { data, error } = await supabase
+                .from('wastage')
+                .insert(newWastageRecords)
+                .select();
+
+            if (error) throw error;
+            setWastage(prev => [...(data || []), ...prev]);
+            return { success: true };
+        } catch (error) {
+            console.error('Error adding batch wastage:', error);
+            return { success: false, error };
+        }
+    };
+
+    const deleteWastage = async (id) => {
+        try {
+            const { error } = await supabase
+                .from('wastage')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            setWastage(prev => prev.filter(w => w.id !== id));
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting wastage:', error);
+            return { success: false, error };
+        }
+    };
+
+    const updateSale = async (saleId, updatedItems, newTotal) => {
+        try {
+            const { data, error } = await supabase
+                .from('sales')
+                .update({
+                    items: updatedItems,
+                    total: newTotal
+                })
+                .eq('id', saleId)
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            setSales(prev => prev.map(sale => sale.id === saleId ? data : sale));
+            return { success: true };
+        } catch (error) {
+            console.error('Error updating sale:', error);
+            return { success: false, error };
         }
     };
 
     const getSalesSummary = (period, customRange = null) => {
         const now = new Date();
         let startDate = new Date();
-        let endDate = new Date(now.getTime() + 86400000); // Default to tomorrow to include today's sales
+        let endDate = new Date(now.getTime() + 86400000); // Default to tomorrow
 
         if (period === 'daily') {
+            if (customRange?.start) {
+                const [y, m, d] = customRange.start.split('-').map(Number);
+                startDate = new Date(y, m - 1, d);
+            }
             startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(startDate.getTime());
+            endDate.setHours(23, 59, 59, 999);
         } else if (period === 'weekly') {
-            startDate.setDate(now.getDate() - 7);
-        } else if (period === 'monthly') {
-            startDate.setMonth(now.getMonth() - 1);
-        } else if (period === 'custom' && customRange) {
-            startDate = new Date(customRange.start);
+            if (customRange?.start) {
+                const [y, m, d] = customRange.start.split('-').map(Number);
+                startDate = new Date(y, m - 1, d);
+            } else {
+                startDate.setDate(now.getDate() - 7);
+            }
             startDate.setHours(0, 0, 0, 0);
-            endDate = new Date(customRange.end);
+            endDate = new Date(startDate.getTime());
+            endDate.setDate(startDate.getDate() + 7);
+            endDate.setHours(23, 59, 59, 999);
+        } else if (period === 'monthly') {
+            if (customRange?.start) {
+                const parts = customRange.start.split('-'); // YYYY-MM
+                if (parts.length === 2) {
+                    startDate = new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
+                } else {
+                    const [y, m, d] = customRange.start.split('-').map(Number);
+                    startDate = new Date(y, m - 1, d);
+                    startDate.setDate(1);
+                }
+            } else {
+                startDate.setMonth(now.getMonth() - 1);
+                startDate.setDate(1);
+            }
+            startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+            endDate.setHours(23, 59, 59, 999);
+        } else if (period === 'custom' && customRange) {
+            const [y1, m1, d1] = customRange.start.split('-').map(Number);
+            startDate = new Date(y1, m1 - 1, d1);
+            startDate.setHours(0, 0, 0, 0);
+            const [y2, m2, d2] = customRange.end.split('-').map(Number);
+            endDate = new Date(y2, m2 - 1, d2);
             endDate.setHours(23, 59, 59, 999);
         }
 
@@ -82,11 +219,13 @@ export const SalesProvider = ({ children }) => {
             return saleDate >= startDate && saleDate <= endDate;
         });
 
-        const summary = filteredSales.reduce((acc, sale) => {
-            // Ensure sale.total is a number
-            acc.totalRevenue += Number(sale.total);
+        const filteredWastage = wastage.filter(w => {
+            const wDate = new Date(w.timestamp);
+            return wDate >= startDate && wDate <= endDate;
+        });
 
-            // Handle items stored as JSONB
+        const summary = filteredSales.reduce((acc, sale) => {
+            acc.totalRevenue += Number(sale.total);
             const items = typeof sale.items === 'string' ? JSON.parse(sale.items) : sale.items;
 
             items.forEach(item => {
@@ -100,18 +239,32 @@ export const SalesProvider = ({ children }) => {
             return acc;
         }, { totalRevenue: 0, totalPlates: 0, items: {} });
 
+        const totalWasteCost = filteredWastage.reduce((sum, w) => sum + (Number(w.quantity) * Number(w.cost_per_unit)), 0);
+
         return {
             ...summary,
+            totalWasteCost,
             saleCount: filteredSales.length,
             period,
             startDate,
-            endDate: period === 'custom' ? endDate : now,
-            filteredSales // Include raw sales list for export
+            endDate,
+            filteredSales,
+            filteredWastage
         };
     };
 
     return (
-        <SalesContext.Provider value={{ sales, loading, recordSale, getSalesSummary }}>
+        <SalesContext.Provider value={{
+            sales,
+            wastage,
+            loading,
+            recordSale,
+            updateSale,
+            getSalesSummary,
+            addWastage,
+            addBatchWastage,
+            deleteWastage
+        }}>
             {children}
         </SalesContext.Provider>
     );

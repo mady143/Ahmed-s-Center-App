@@ -540,12 +540,11 @@ const ReportsModal = ({ isOpen, onClose, products = [] }) => {
         // === SUMMARY TABLES (to the right) ===
         const summaryStartCol = 13; // Column M
 
-        // Calculate week number for each sale based on start date
-        const startDate = summary.startDate;
+        // Calculate week number based on day of the month
+        // Week 1: Days 1-7, Week 2: Days 8-14, Week 3: Days 15-21, Week 4: Days 22-end
         const getWeekNumber = (date) => {
-            const diffTime = date - startDate;
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            return Math.floor(diffDays / 7) + 1;
+            const dayOfMonth = date.getDate();
+            return Math.ceil(dayOfMonth / 7);
         };
 
         // Group sales by week and item

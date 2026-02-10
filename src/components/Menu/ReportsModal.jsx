@@ -1067,9 +1067,9 @@ const ReportsModal = ({ isOpen, onClose, products = [] }) => {
                             type={statusModal.type}
                         />
                     </motion.div>
-                </div >
+                </div>
             )}
-        </AnimatePresence >
+        </AnimatePresence>
     );
 };
 

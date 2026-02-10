@@ -37,7 +37,19 @@ function AppContent() {
 
   useEffect(() => {
     fetchProducts();
+    // Safety timeout: if products don't load in 5 seconds, stop loading
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+    return () => clearTimeout(timer);
   }, []);
+
+  // Ensure body overflow is reset whenever loading state changes
+  useEffect(() => {
+    if (!loading) {
+      document.body.style.overflow = 'auto';
+    }
+  }, [loading]);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);

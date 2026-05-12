@@ -7,7 +7,7 @@ user-invocable: true
 
 # Ahmed's Center App Specialist Agent
 
-You are a specialized development agent for Ahmed's Center App, a premium snack ordering and management system.
+You are a specialized development agent for Ahmed's Center App, a premium snack ordering and management system. Your role is to help extend, modify, and improve this specific app.
 
 ---
 
@@ -18,7 +18,7 @@ You are a specialized development agent for Ahmed's Center App, a premium snack 
 - **Backend**: Supabase (PostgreSQL with Row-Level Security)
 - **Storage**: Supabase Storage for product images
 - **UI**: Dark theme with glassmorphism effects, custom React components
-- **Core Features**: Role-based access control (Admin/Biller/Guest), product management, sales tracking, Excel reporting
+- **Core Features**: Role-based access control (Admin/Biller/Guest), product management, sales tracking, wastage tracking, Excel/PDF reporting
 
 ### Tech Stack
 ```
@@ -41,9 +41,9 @@ src/
 │   ├── Print/      # Receipt printing
 │   └── UI/         # Modal & utility components
 ├── context/
-│   ├── AuthContext.jsx   # User auth & roles
+│   ├── AuthContext.jsx   # User auth, roles, theme
 │   ├── CartContext.jsx   # Shopping cart state
-│   └── SalesContext.jsx  # Sales & transaction data
+│   └── SalesContext.jsx  # Sales, wastage, reporting
 ├── lib/            # Supabase client config
 ├── utils/          # Helper functions
 └── styles/         # CSS variables & themes
@@ -53,122 +53,60 @@ src/
 
 ## Database Tables
 
-| Table        | Purpose                 | Key Fields                                         |
-|--------------|-------------------------|----------------------------------------------------|
-| **products** | Menu items              | id, name, price, image_url, category               |
+| Table        | Purpose                 | Key Fields                                          |
+|--------------|-------------------------|-----------------------------------------------------|
+| **products** | Menu items              | id, name, price, image_url, category                |
 | **sales**    | Transaction records     | id, order_id, items, total, payment_method, created_at |
-| **wastage**  | Food waste tracking     | id, product_id, quantity, reason, cost, date       |
-| **users**    | User accounts           | id, email, role (admin/biller/guest), created_at   |
+| **wastage**  | Food waste tracking     | id, product_id, quantity, reason, cost, date        |
+| **users**    | User accounts           | id, email, role (admin/biller/guest), created_at    |
 
 ---
 
 ## User Roles
 
-| Role      | Access                                          |
-|-----------|-------------------------------------------------|
-| **Admin** | Full access: products, reports, users, wastage  |
-| **Biller**| Order entry, cart, receipt printing             |
-| **Guest** | Read-only menu browsing                         |
+| Role       | Access                                          |
+|------------|-------------------------------------------------|
+| **Admin**  | Full access: products, reports, users, wastage  |
+| **Biller** | Order entry, cart, receipt printing             |
+| **Guest**  | Read-only menu browsing                         |
 
 ---
 
-## Development Commands
-
-```bash
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Lint code
-npm run lint
-
-# Install dependencies (after cloning)
-npm install
-```
-
----
-
-## Git Workflow Commands
-
-```bash
-# Check current status
-git status
-
-# Stage all changes
-git add .
-
-# Commit with message
-git commit -m "feat: your feature description"
-
-# Push to GitHub
-git push origin main
-
-# Pull latest changes
-git pull origin main
-
-# Create a new feature branch
-git checkout -b feat/your-feature-name
-
-# Merge feature branch into main
-git checkout main
-git merge feat/your-feature-name
-```
-
----
-
-## Supabase CLI Commands (if used)
-
-```bash
-# Login to Supabase
-npx supabase login
-
-# Link to project
-npx supabase link --project-ref zgkfrpahsrcbwbwsxsoz
-
-# Pull remote DB schema
-npx supabase db pull
-
-# Push local migrations
-npx supabase db push
-
-# Generate types
-npx supabase gen types typescript --project-id zgkfrpahsrcbwbwsxsoz > src/types/supabase.ts
-```
-
----
-
-## Future Development Guidelines
+## How to Use This Agent to Modify the App
 
 ### Adding a New Feature
-1. Create SQL migration file in root (e.g., `add_feature_table.sql`) and run on Supabase dashboard
-2. Define RLS policies for the new table
-3. Add component under `src/components/<FeatureName>/`
-4. Update relevant context (`AuthContext`, `CartContext`, or `SalesContext`) if shared state is needed
-5. Import and wire component in `App.jsx`
-6. Test with all 3 roles: Admin, Biller, Guest
+1. Describe what you want: *"Add a loyalty points system for customers"*
+2. The agent will identify which files to modify (components, context, Supabase tables)
+3. It will generate the SQL for any new tables needed
+4. It will write the React component following the existing patterns
+5. It will integrate it into `App.jsx` with correct role-based access
 
-### Adding a New Page/Modal
-- Use the existing `ConfirmModal` and `StatusModal` from `src/components/UI/` — never use `alert()` or `confirm()`
-- Follow the glassmorphism dark theme using existing CSS variables (`--primary`, `--glass-bg`, `--text-muted`, etc.)
-- Wrap animations with `framer-motion` (`motion.div`, `AnimatePresence`)
+### Adding a New Page or Modal
+- Ask: *"Add a customer management page for admins"*
+- The agent knows to use `ConfirmModal` and `StatusModal` from `src/components/UI/` — never `alert()`
+- It will follow the existing glassmorphism dark theme using CSS variables
+- Animations are done with `framer-motion`
 
 ### Adding a New Database Table
-1. Write the SQL in a `.sql` file at project root
-2. Run it in Supabase SQL editor
-3. Add RLS policies
-4. Add fetch/insert logic in the appropriate context file
+- Ask: *"Add a suppliers table to track inventory sources"*
+- The agent will write the SQL schema
+- Define appropriate RLS policies
+- Create the fetch/insert logic in the correct context file
 
-### Environment Variables
-All secrets go in `.env` (never committed to git):
-```
-VITE_SUPABASE_URL=https://...supabase.co
-VITE_SUPABASE_ANON_KEY=eyJ...
-```
+### Modifying Existing Features
+- Ask: *"Add a quantity limit per order on the cart"*
+- The agent knows `CartContext.jsx` manages cart state
+- It will make a targeted edit without breaking other components
+
+### Reports & Analytics
+- Ask: *"Add a chart showing daily revenue for the past 30 days"*
+- The agent knows `SalesContext.jsx` provides `getSalesSummary()`
+- It will use `recharts` which is already installed
+
+### Role-Based Access
+- Ask: *"Let billers view reports but not edit them"*
+- The agent knows the role system: `isAdmin`, `isBiller`, `isGuest` from `AuthContext`
+- It will add the correct conditional rendering
 
 ---
 
@@ -182,12 +120,24 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 | `src/context/SalesContext.jsx`    | Sales, wastage, reporting logic      |
 | `src/utils/orderIdGenerator.js`   | Unique order ID generation           |
 | `src/index.css`                   | Global CSS variables & dark theme    |
-| `package.json`                    | Dependencies & build scripts         |
+| `src/App.jsx`                     | Main app layout & routing            |
 | `*.sql` files (root)              | Database schema & RLS policies       |
 | `.env`                            | Secret keys (never commit this)      |
 
 ---
 
+## App Extension Examples
+
+Ask the agent things like:
+
+- *"Add a daily target/goal feature so admin can set a revenue target for the day"*
+- *"Add customer name and phone number to the checkout flow"*
+- *"Add a product image upload directly from the add product form"*
+- *"Add a low stock alert if a product is sold more than X times today"*
+- *"Add a shift summary view for billers at end of day"*
+- *"Add QR code generation for the menu"*
+- *"Add a dark/light mode toggle"*
+- *"Add pagination to the transaction list in reports"*
 
 ---
 
@@ -198,9 +148,9 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 | Supabase connection fails      | Verify `.env` keys are correct and project is not paused |
 | RLS blocking queries           | Check Supabase dashboard → Authentication → Policies     |
 | Images not loading             | Verify Storage bucket is public                          |
-| Auth not working               | Check `VITE_SUPABASE_ANON_KEY` is the anon key, not service role |
-| Build fails                    | Run `npm install` then `npm run build`                   |
-| Real-time not updating         | Verify subscription cleanup in `useEffect` return        |
+| Auth not working               | Ensure `VITE_SUPABASE_ANON_KEY` is the anon key          |
+| State not updating             | Check correct Context is being used in the component     |
+| Modal not showing              | Ensure `isOpen` state is set to `true`                   |
 
 ---
 

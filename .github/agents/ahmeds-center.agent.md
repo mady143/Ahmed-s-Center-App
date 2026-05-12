@@ -188,11 +188,6 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 
 ---
 
-## RLS Security Rules
-
-- **products**: Readable by all, writable by admins only
-- **sales / wastage**: Created by billers/admins, readable by same role
-- **users**: Own record readable, no direct editing except via Supabase Auth
 
 ---
 
